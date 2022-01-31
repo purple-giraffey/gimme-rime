@@ -7,13 +7,12 @@
         body {
             background-color: #125251;
             color: #fcf6d7;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            justify-items: center;
-            align-items: center;
             font-family: serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             height: 100vh;
-            min-height: 100vh;
+            max-height: 100vh;
             padding: 0;
             margin: 0;
         }
@@ -31,7 +30,7 @@
 
         button {
             font-family: serif;
-            font-size: 3vw;
+            font-size: 2vw;
             padding: 2vw;
             border: none;
             background-color: #ffd000;
@@ -40,6 +39,15 @@
 
         button:hover {
             filter: brightness(105%)
+        }
+
+        .main {
+            display: flex;
+            max-width: 80%;
+            height: 90%;
+            justify-content: space-between;
+            flex-direction: column;
+            align-items: center;
         }
 
         .word-input-container {
@@ -80,29 +88,32 @@
 </head>
 
 <body>
-    <div style="font-size:10vw">
-        <div>Gimme рими</div>
-    </div>
-    <div style="padding: 5vw 0;">
-        <button><label for="upload-text-file">Корпус зборови прикачѝ ми</label></button>
-        <span id="file-name" style="color:#fcf6d7; padding: 0 1vw;"></span>
-        <input type='file' accept='text/plain' onchange="openFile(event)" id="upload-text-file"
-            style="display: none;" />
+    <div class="main">
+        <div style="font-size: 8vw">
+            <div>Gimme рими</div>
+        </div>
+        <div style="padding: 5vw 0;">
+            <button><label for="upload-text-file">Корпус зборови прикачѝ ми</label></button>
+            <span id="file-name" style="color:#fcf6d7; padding: 0 1vw; font-size: 2vw;"></span>
+            <input type='file' accept='text/plain' onchange="openFile(event)" id="upload-text-file"
+                style="display: none;" />
 
-        <div class="word-input-container">
-            <input type="text" id="rhyme-input" placeholder="...овде збор прими" />
-            <button id="rhyme-input-btn" onclick="getRhymes()" style="border-radius: 0 5px 5px 0">Најди ми рими</button>
+            <div class="word-input-container">
+                <input type="text" id="rhyme-input" placeholder="...овде збор прими" />
+                <button id="rhyme-input-btn" onclick="getRhymes()" style="border-radius: 0 5px 5px 0">Најди ми
+                    рими</button>
+            </div>
+            <div id="word-container" class="word-container">
+                <span style="color: #fcf6d7; padding-right: 1vw">Збор:</span>
+                <span id="word"></span>
+            </div>
+            <div id="results" class="results-display"></div>
+            <div id="no-results" class="no-results-display"></div>
         </div>
-        <div id="word-container" class="word-container">
-            <span style="color: #fcf6d7; padding-right: 1vw">Збор:</span>
-            <span id="word"></span>
+        <div style="font-size:3vw; text-align: center;">
+            <div style="color:#ffd000">maramar, 2022</div>
+            <div>овој сајт го сними</div>
         </div>
-        <div id="results" class="results-display"></div>
-        <div id="no-results" class="no-results-display"></div>
-    </div>
-    <div style="font-size:3vw; text-align: center;">
-        <div style="color:#ffd000">maramar, 2022</div>
-        <div>овој сајт го сними</div>
     </div>
     <script>
 
@@ -163,6 +174,12 @@
         }
 
         function checkRhymingPartsMatch(rp1, rp2) {
+            if (rp1 === rp2) return true;
+
+            const rp1vowels = getVowelPositions(rp1)
+            const rp2vowels = getVowelPositions(rp2)
+            if (rp1vowels.length !== rp2vowels.length) return false;
+
             const rp1Replaced = rp1.split('').map(l => letters.consonantPairs.get(l) ?? l)
             const rp2Replaced = rp2.split('').map(l => letters.consonantPairs.get(l) ?? l)
             return rp1Replaced.join() === rp2Replaced.join()
@@ -173,7 +190,6 @@
 
             return allWords.filter(w => {
                 if (w === word) return false;
-                if (w.endsWith(rhymingPart)) return true;
                 const thisWordRhymingPart = getRhymingPart(w)
                 return checkRhymingPartsMatch(rhymingPart, thisWordRhymingPart)
             })
