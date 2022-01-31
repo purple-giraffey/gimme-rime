@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<html>
+
+<head>
+    <style>
+        body {
+            background-color: #125251;
+            color: #fcf6d7;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            justify-items: center;
+            align-items: center;
+            font-family: serif;
+            height: 100vh;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        input {
+            width: 50vw;
+            font-size: 3vw;
+            font-style: italic;
+            font-family: serif;
+            text-align: center;
+            color: #061b1b;
+            border: none;
+            border-radius: 5px 0 0 5px;
+        }
+
+        button {
+            font-family: serif;
+            font-size: 3vw;
+            padding: 2vw;
+            border: none;
+            background-color: #ffd000;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            filter: brightness(105%)
+        }
+
+        .word-input-container {
+            color: #ffd000;
+            display: flex;
+            height: 8vw;
+            padding: 2vw 0;
+        }
+
+        .results-display {
+            display: none;
+            justify-content: center;
+            margin: 5vw 0vw;
+            padding: 2vw;
+            border: solid 1px #ffd000;
+            overflow: auto;
+            max-width: 90vw;
+            font-size: 3vw;
+            text-align: center;
+        }
+
+        .no-results-display {
+            color: #edadff;
+            font-style: italic;
+            font-size: 3vw;
+            text-align: center;
+            display: none;
+        }
+
+        .word-container {
+            display: none;
+            justify-content: center;
+            margin: 3vw 0vw;
+            color: #ffd000;
+            font-size: 3vw;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="font-size:10vw">
+        <div>Gimme рими</div>
+    </div>
+    <div style="padding: 5vw 0;">
+        <button><label for="upload-text-file">Корпус зборови прикачѝ ми</label></button>
+        <span id="file-name" style="color:#fcf6d7; padding: 0 1vw;"></span>
+        <input type='file' accept='text/plain' onchange="openFile(event)" id="upload-text-file"
+            style="display: none;" />
+
+        <div class="word-input-container">
+            <input type="text" id="rhyme-input" placeholder="...овде збор прими" />
+            <button id="rhyme-input-btn" onclick="getRhymes()" style="border-radius: 0 5px 5px 0">Најди ми рими</button>
+        </div>
+        <div id="word-container" class="word-container">
+            <span style="color: #fcf6d7; padding-right: 1vw">Збор:</span>
+            <span id="word"></span>
+        </div>
+        <div id="results" class="results-display"></div>
+        <div id="no-results" class="no-results-display"></div>
+    </div>
+    <div style="font-size:3vw; text-align: center;">
+        <div style="color:#ffd000">maramar, 2022</div>
+        <div>овој сајт го сними</div>
+    </div>
+    <script>
+
+        document.querySelector("#rhyme-input").addEventListener("keyup", event => {
+            if (event.key !== "Enter") return;
+            document.querySelector("#rhyme-input-btn").click()
+            event.preventDefault();
+        });
+
+        let allWords = []
+        const letters = {
+            vowels: ['а', 'е', 'и', 'о', 'у'],
+            conditionalVowels: ['р'],
+            consonantPairs: new Map([
+                ['б', 'п'], ['в', 'ф'], ['г', 'к'], ['д', 'т'], ['ѓ', 'ќ'], ['ж', 'ш'], ['з', 'с'], ['ѕ', 'ц'], ['џ', 'ч']
+            ])
+        }
+        var openFile = function (event) {
+            var input = event.target;
+
+            var reader = new FileReader();
+            reader.onload = function () {
+                var text = reader.result;
+                allWords = text.split('\n')
+            };
+            reader.readAsText(input.files[0]);
+
+            el = document.getElementById('file-name')
+            el.innerHTML = input.files[0].name
+        }
+
+        function getVowelPositions(word) {
+            const wordLetters = word.split('')
+            const vowelPositions = []
+            wordLetters.forEach((l, i) => {
+                if (letters.vowels.includes(l)) {
+                    vowelPositions.push({ letter: l, index: i })
+                } else if (
+                    letters.conditionalVowels.includes(l) &&
+                    i > 0 && i < wordLetters.length - 1 &&
+                    !letters.vowels.includes(wordLetters[i - 1]) &&
+                    !letters.vowels.includes(wordLetters[i + 1])) {
+                    vowelPositions.push({ letter: l, index: i })
+                }
+            })
+            return vowelPositions
+        }
+
+        function getRhymingPart(word) {
+            const vowelPositions = getVowelPositions(word)
+            if (vowelPositions.length < 1) {
+                return ''
+            } else if (vowelPositions.length <= 3) {
+                return word.slice(vowelPositions[0].index)
+            } else {
+                return word.slice(vowelPositions.slice(-3)[0].index)
+            }
+        }
+
+        function checkRhymingPartsMatch(rp1, rp2) {
+            const rp1Replaced = rp1.split('').map(l => letters.consonantPairs.get(l) ?? l)
+            const rp2Replaced = rp2.split('').map(l => letters.consonantPairs.get(l) ?? l)
+            return rp1Replaced.join() === rp2Replaced.join()
+        }
+
+        function findRhymes(word) {
+            const rhymingPart = getRhymingPart(word)
+
+            return allWords.filter(w => {
+                if (w === word) return false;
+                if (w.endsWith(rhymingPart)) return true;
+                const thisWordRhymingPart = getRhymingPart(w)
+                return checkRhymingPartsMatch(rhymingPart, thisWordRhymingPart)
+            })
+        }
+
+        function setResults(word, results) {
+            el = document.getElementById('word')
+            el.innerHTML = word
+            containerEl = document.getElementById('word-container')
+            containerEl.style.display = 'flex'
+            resEl = document.getElementById('results')
+            noResEl = document.getElementById('no-results')
+            if (results.length < 1) {
+                const rhymingPart = getRhymingPart(word)
+                if (rhymingPart) {
+                    resEl.innerHTML = ['м' + getRhymingPart(word)]
+                    resEl.style.display = 'flex'
+                } else { resEl.style.display = 'none' }
+                noResEl.style.display = 'block'
+                noResEl.innerHTML = 'прикачи поголем корпус на зборови за подобри резултати'
+            }
+            else {
+                resEl.style.display = 'flex'
+                resEl.innerHTML = results.join(', ')
+                noResEl.style.display = 'none'
+            }
+        }
+
+        function getRhymes() {
+            let input = document.querySelector("input[id='rhyme-input']");
+            if (!input.value) return;
+            const word = input.value.toLowerCase().trim()
+            let results = findRhymes(word)
+            setResults(word, results)
+            input.value = null
+        }
+
+    </script>
+</body>
+
+</html>
